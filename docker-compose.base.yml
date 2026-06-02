@@ -1,0 +1,201 @@
+# Ortak servis tanımları — tüm ortamlar bu dosyayı temel alır.
+# Ortama özgü farklar seleniumorchestrator-test/docker-compose.yml veya seleniumorchestrator-prod/docker-compose.yml içindedir.
+#
+# Gerekli ortam değişkenleri (definitions.env + definitions.<env>.env):
+#   PROJECT_TITLE     → proje adı (seleniumorchestrator)       — tüm path ve image'ların kaynağı
+#   DEVOPS_HOME       → sunucu home dizini       — /home/devops
+#   VOLUME_ROOT       → host volume kökü (definitions.env, genelde DEVOPS_HOME/volumes/PROJECT_TITLE)
+#   NETWORK_NAME      → docker network adı       — seleniumorchestratorNetwork
+#   DEPLOY_ENV        → test | prod
+#   ASPNETCORE_ENV    → Test | Prod
+#   KEYCLOAK_REALM → tüm ortam / Yardim için ortak realm (definitions.<env>.env)
+#
+# Çalıştırma (lib/compose.sh üzerinden):
+#   olustur_compose test up -d
+#   olustur_compose prod up -d
+
+version: '3'
+services:
+  postgresql:
+    container_name: ${PROJECT_TITLE}-${DEPLOY_ENV}-postgresql-1
+    image: postgres:18.4-alpine
+    # Harici ağda DNS: servis adı bazen güvenilir olmuyor; konteyner adı her zaman çözülür.
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+    - ${VOLUME_ROOT}/postgres-${DEPLOY_ENV}:/var/lib/postgresql:rw
+    networks:
+      - appNetwork
+    # Paylasilan harici agda test+prod birlikteyse "postgresql" alias'i cakisir; baglanti container_name ile.
+
+  pgadmin:
+    container_name: ${PROJECT_TITLE}-${DEPLOY_ENV}-pgadmin-1
+    image: dpage/pgadmin4:latest
+    restart: unless-stopped
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
+    volumes:
+      - ${VOLUME_ROOT}/pgadmin-${DEPLOY_ENV}:/var/lib/pgadmin
+    networks:
+      - appNetwork
+    depends_on:
+      - postgresql
+
+  keycloak:
+    container_name: ${PROJECT_TITLE}-${DEPLOY_ENV}-keycloak-1
+    image: quay.io/keycloak/keycloak:26.6.1
+    command:
+      - start
+      #- --proxy=edge
+      #tekdomain  --hostname=${KEYCLOAK_HOSTNAME} sil
+      #- --hostname-strict=false
+      #- --hostname-strict-https=false
+      - --spi-login-protocol-openid-connect-suppress-logout-confirmation-screen=true
+    environment:
+      #tekdomain  KC_HOSTNAME_URL: http://${KEYCLOAK_HOSTNAME}/giris  ekle
+      #tekdomain  KC_HOSTNAME: ${KEYCLOAK_HOSTNAME} sil
+      #tekdomain KC_HTTP_RELATIVE_PATH: ekle
+      KC_HOSTNAME_STRICT: false
+      #KC_HOSTNAME_STRICT_BACKCHANNEL: false
+      #KC_HOSTNAME_STRICT_HTTPS: false
+      KC_HTTP_ENABLED: true
+      KC_HEALTH_ENABLED: true
+      KC_HTTPS_ENABLED: false
+      KC_PROXY_HEADERS: xforwarded
+      #KC_PROXY: edge
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://${PROJECT_TITLE}-${DEPLOY_ENV}-postgresql-1:5432/keycloak
+      KC_DB_USERNAME: ${POSTGRES_USER}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KC_LOG_LEVEL: INFO
+      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
+      TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
+      TURNSTILE_ENABLED: ${TURNSTILE_ENABLED:-false}
+    restart: unless-stopped
+    networks:
+      - appNetwork
+    volumes:
+      - ${VOLUME_ROOT}/keycloak-${DEPLOY_ENV}/themes:/opt/keycloak/themes
+      - ${VOLUME_ROOT}/keycloak-${DEPLOY_ENV}/providers:/opt/keycloak/providers
+    depends_on:
+      - postgresql
+
+  SeleniumRunner:
+    container_name: ${PROJECT_TITLE}-${DEPLOY_ENV}-selenium-1
+    image: zdory/selenium-runner-api:latest
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENV}
+      - AppSettings:SharedPathOnSystem=${VOLUME_ROOT}/selenium-runner-${DEPLOY_ENV}
+      - AppSettings:ScriptsFolderForApi=/scripts
+    volumes:
+      - ${VOLUME_ROOT}/selenium-runner-${DEPLOY_ENV}:/scripts
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - appNetwork
+
+  Backend:
+    container_name: ${PROJECT_TITLE}-${DEPLOY_ENV}-backend-1
+    image: ${PROJECT_TITLE}si-${DEPLOY_ENV}:latest
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENV}
+      - AppSettings:DBHost=${PROJECT_TITLE}-${DEPLOY_ENV}-postgresql-1
+      - AppSettings:DBDatabase=${PROJECT_TITLE}
+      - AppSettings:DBUserId=${POSTGRES_USER}
+      - AppSettings:DBPassword=${POSTGRES_PASSWORD}
+      - AppSettings:ApplicationEndpoint=${API_ENDPOINT}
+      - AppSettings:Secret=${APP_SECRET}
+      - AppSettings:FromAddress=${APP_EMAIL_FROM}
+      - AppSettings:FromName=${APP_EMAIL_FROM_NAME}
+      - AppSettings:FromPassword=${APP_EMAIL_FROM_PASSWORD}
+      - AppSettings:SendGridApiKeyValue=${APP_SENDGRID_API_KEY}
+      - RedisSettings:RedisPass=${REDIS_PASSWORD}
+      - RedisSettings:RedisEndPoint=${REDIS_ENDPOINT}
+      - ElasticSettings:IgnoreElastic=true
+      - ElasticSettings:ElasticEndpoint=${ELASTIC_ENDPOINT}
+      - ElasticSettings:ElasticUser=${ELASTIC_USER}
+      - ElasticSettings:ElasticPassword=${ELASTIC_PASSWORD}
+      - SeleniumRunnerClientOptions:SeleniumRunnerClientEndpoint=http://${PROJECT_TITLE}-${DEPLOY_ENV}-selenium-1:5000
+    volumes:
+      - ${VOLUME_ROOT}/${PROJECT_TITLE}api_${DEPLOY_ENV}_data:/app/data
+    networks:
+      - appNetwork
+    depends_on:
+      - postgresql
+
+  FrontendReact:
+    container_name: ${PROJECT_TITLE}-${DEPLOY_ENV}-frontend-1
+    image: ${PROJECT_TITLE}ui-${DEPLOY_ENV}:latest
+    restart: unless-stopped
+    networks:
+      - appNetwork
+
+  RotaService:
+    container_name: ${PROJECT_TITLE}-${DEPLOY_ENV}-rota-1
+    image: rota-service-${DEPLOY_ENV}:latest
+    restart: unless-stopped
+    volumes:
+      - ${VOLUME_ROOT}/rota_service_${DEPLOY_ENV}_data:/app/data
+    networks:
+      - appNetwork
+
+  SmsService:
+    container_name: ${PROJECT_TITLE}-${DEPLOY_ENV}-sms-1
+    image: sms-service-${DEPLOY_ENV}:latest
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENV}
+      # appsettings.* içindeki sabit host'ları (db-postgres-*-1) ezer; stack postgres: ${PROJECT_TITLE}-${DEPLOY_ENV}-postgresql-1
+      - "DbConnectionString=Server=${PROJECT_TITLE}-${DEPLOY_ENV}-postgresql-1;Database=SmsService;User Id=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};TrustServerCertificate=True;"
+      - IsTest=${SMS_SERVICE_ISTEST}
+      - MailpitSettings__Host=${MAILPIT_HOST}
+      - MailpitSettings__Port=${MAILPIT_PORT}
+      - MailpitSettings__IsActive=${MAILPIT_ACTIVE}
+    volumes:
+      - ${VOLUME_ROOT}/sms_service_${DEPLOY_ENV}_data:/app/data
+    networks:
+      - appNetwork
+    depends_on:
+      - postgresql
+
+  LLMService:
+    container_name: ${PROJECT_TITLE}-${DEPLOY_ENV}-llm-1
+    image: llm-service-${DEPLOY_ENV}:latest
+    restart: unless-stopped
+    volumes:
+      - ${VOLUME_ROOT}/llm_service_${DEPLOY_ENV}_data:/app/data
+    networks:
+      - appNetwork
+
+  Yardim:
+    container_name: ${PROJECT_TITLE}-${DEPLOY_ENV}-yardimozel-1
+    image: ${PROJECT_TITLE}-yardim-ozel-${DEPLOY_ENV}:latest
+    restart: unless-stopped
+    environment:
+      - KEYCLOAK_SERVER=http://${PROJECT_TITLE}-${DEPLOY_ENV}-keycloak-1:8080
+      - KEYCLOAK_REALM=${KEYCLOAK_REALM}
+    networks:
+      - appNetwork
+    depends_on:
+      - keycloak
+
+  # Ozel Ek Container tanımları buraya yapılır
+  # -- PRESERVE BEGIN: OzelEkContainerTanimlari -- #
+  # YardimGenel:
+  #   container_name: ${PROJECT_TITLE}-${DEPLOY_ENV}-yardimgenel-1
+  #   image: ${PROJECT_TITLE}-yardim-genel-${DEPLOY_ENV}:latest
+  #   restart: unless-stopped
+  #   networks:
+  #     - appNetwork
+  # -- PRESERVE END: OzelEkContainerTanimlari -- #
+
+networks:
+  appNetwork:
+    name: ${NETWORK_NAME}
+    external: true

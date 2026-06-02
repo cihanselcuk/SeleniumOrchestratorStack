@@ -1,0 +1,57 @@
+# Prod ortamına özel override'lar.
+# Ortak tüm servis tanımları ../docker-compose.base.yml içindedir.
+#
+# Çalıştırma:
+#   docker compose -f ../docker-compose.base.yml -f docker-compose.yml \
+#       --env-file ../definitions.env --env-file ../definitions.prod.env up -d
+
+version: '3'
+services:
+  # Port publish yok: trafik nginx üzerinden yapılır (stack servisleri dış port açmaz).
+
+  SmsService:
+    environment:
+      - NetgsmSettings__EndPoint=${NETGSM_ENDPOINT}
+      - NetgsmSettings__UserCode=${NETGSM_USERCODE}
+      - NetgsmSettings__MessageHeader=${NETGSM_MESSAGE_HEADER}
+      - NetgsmSettings__AppKey=${NETGSM_APP_KEY}
+      - NetgsmSettings__Password=${NETGSM_PASSWORD}
+      - NetgsmSettings__IYSCode=${NETGSM_IYS_CODE}
+      - NetgsmSettings__IsTest=false
+
+  FrontendReact:
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl --fail ${FRONTEND_HEALTHCHECK_URL} || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 120
+
+  listmonk:
+    image: listmonk/listmonk:latest
+    container_name: ${PROJECT_TITLE}-${DEPLOY_ENV}-listmonk-1
+    restart: unless-stopped
+    environment:
+      LISTMONK_app__address: "0.0.0.0:9000"
+      LISTMONK_db__host: ${PROJECT_TITLE}-${DEPLOY_ENV}-postgresql-1
+      LISTMONK_db__port: 5432
+      LISTMONK_db__user: ${POSTGRES_USER}
+      LISTMONK_db__password: ${POSTGRES_PASSWORD}
+      LISTMONK_db__database: MailListmonk
+      LISTMONK_db__ssl_mode: disable
+      LISTMONK_ADMIN_USER: ${LISTMONK_ADMIN_USER:-}
+      LISTMONK_ADMIN_PASSWORD: ${LISTMONK_ADMIN_PASSWORD:-}
+    volumes:
+      - ${VOLUME_ROOT}/listmonk-${DEPLOY_ENV}/uploads:/listmonk/uploads
+    networks:
+      - appNetwork
+    depends_on:
+      - postgresql
+
+networks:
+  appNetwork:
+    name: ${NETWORK_NAME}
+    external: true
