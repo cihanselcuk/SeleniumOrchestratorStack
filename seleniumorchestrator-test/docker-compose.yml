@@ -11,13 +11,14 @@ services:
 
   SmsService:
     environment:
-      - NetgsmSettings__EndPoint=yok
-      - NetgsmSettings__UserCode=111
-      - NetgsmSettings__MessageHeader=11
-      - NetgsmSettings__AppKey=xxx
-      - NetgsmSettings__Password=xx
-      - NetgsmSettings__IYSCode=xx
-      - NetgsmSettings__IsTest=true
+      - NetgsmSettings__EndPoint=${NETGSM_ENDPOINT}
+      - NetgsmSettings__UserCode=${NETGSM_USERCODE}
+      - NetgsmSettings__MessageHeader=${NETGSM_MESSAGE_HEADER}
+      - NetgsmSettings__AppKey=${NETGSM_APP_KEY}
+      - NetgsmSettings__Password=${NETGSM_PASSWORD}
+      - NetgsmSettings__IYSCode=${NETGSM_IYS_CODE}
+      # true iken Netgsm'e gerçek istek atılmaz; definitions.test.env'den yönetilir.
+      - NetgsmSettings__IsTest=${SMS_SERVICE_ISTEST}
 
   listmonk:
     image: listmonk/listmonk:latest
