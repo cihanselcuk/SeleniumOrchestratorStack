@@ -49,7 +49,7 @@ while IFS= read -r db; do
   echo "Veritabanı adı: ${db}"
   echo "========================================="
 
-  # Örnek: egitim_prod_2026-05-14_22-30-00_keycloak.dump (tekil yedek: egitim_prod_2026-05-14_22-30-00.dump)
+  # Örnek: sevgikutuphanesi_prod_2026-05-14_22-30-00_keycloak.dump (tekil yedek: sevgikutuphanesi_prod_2026-05-14_22-30-00.dump)
   DUMP_BASENAME="${PROJECT_TITLE}_${DEPLOY_ENV}_${TIMESTAMP}_${db}.dump"
   CONTAINER_PATH="/tmp/${DUMP_BASENAME}"
 

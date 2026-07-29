@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Nginx Proxy Manager API ile greentrace proxy host'larını toplu oluşturur.
+# Nginx Proxy Manager API ile seleniumorchestrator proxy host'larını toplu oluşturur.
 #
 # Kullanım:
 #   ./scripts/npm-proxy-ekle.sh test

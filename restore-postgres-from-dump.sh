@@ -6,8 +6,8 @@
 # Dump yolu hedef ortamdan bağımsızdır (ör. prod yedeğini test konteynerine). Tam mutlak yol önerilir.
 #
 # Dosya adı backup-postgres-*.sh ile uyumluysa hedef DB önerilir:
-#   egitim_prod_2026-05-14_22-30-00.dump           -> egitim
-#   egitim_prod_2026-05-14_22-30-00_keycloak.dump -> keycloak
+#   sevgikutuphanesi_prod_2026-05-14_22-30-00.dump           -> sevgikutuphanesi
+#   sevgikutuphanesi_prod_2026-05-14_22-30-00_keycloak.dump -> keycloak
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -98,7 +98,7 @@ ARGÜMANLAR
 
   [hedef_veritabani]    İsteğe bağlı.  Sadece harf, rakam ve alt çizgi (_).
                         VERİLİRSE: Restore bu ada yapılır; veritabanı adı için soru sorulmaz.
-                        VERİLMEZSE: Dosya adından (egitim_prod_..._keycloak.dump gibi) tahmin edilir,
+                        VERİLMEZSE: Dosya adından (sevgikutuphanesi_prod_..._keycloak.dump gibi) tahmin edilir,
                         Enter ile onaylayıp veya yazarak değiştirebilirsiniz.
 
 DİĞER
@@ -115,9 +115,9 @@ YENİ VERİTABANI
   Hedef yoksa oluşturulsun mu diye sorulur (e/h, varsayılan e).
 
 ÖRNEKLER
-  sudo ./${prog} prod /home/devops/backup/egitim/prod/egitim_prod_2026-05-14_12-00-00.dump
-  sudo ./${prog} test /home/devops/backup/egitim/prod/egitim_prod_2026-05-14_12-00-00_keycloak.dump keycloak_yeni
-  sudo ./${prog} test /home/devops/backup/egitim/prod/egitim_prod_....dump
+  sudo ./${prog} prod /home/devops/backup/sevgikutuphanesi/prod/sevgikutuphanesi_prod_2026-05-14_12-00-00.dump
+  sudo ./${prog} test /home/devops/backup/sevgikutuphanesi/prod/sevgikutuphanesi_prod_2026-05-14_12-00-00_keycloak.dump keycloak_yeni
+  sudo ./${prog} test /home/devops/backup/sevgikutuphanesi/prod/sevgikutuphanesi_prod_....dump
                         (3. argüman yok: hedef DB dosya adından tahmin + soru)
 EOF
 }
@@ -216,14 +216,14 @@ if [[ -z "${DUMP_ABS}" ]] || [[ ! -f "${DUMP_ABS}" ]]; then
   echo "Çalışma dizini: $(pwd) — REAL_HOME=${REAL_HOME} (sudo ile SUDO_USER evi)"
   echo "Öneri: Dosyanın gerçek tam yolunu verin (ör. ls -l ile kopyalanan yol)."
   echo "Tanımlı yedek kökleri (referans) — test: ${BACKUP_HINT_TEST} — prod: ${BACKUP_HINT_PROD}"
-  echo "Örnek: sudo $0 test ${BACKUP_HINT_PROD}/egitim_prod_....dump"
+  echo "Örnek: sudo $0 test ${BACKUP_HINT_PROD}/sevgikutuphanesi_prod_....dump"
   exit 1
 fi
 
 infer_default_db() {
   local base rest
   base=$(basename "${DUMP_ABS}" .dump)
-  # Hedef ortam test iken dosya adı egitim_prod_... olabilir; önek hedef DEPLOY_ENV ile sınırlı olmamalı.
+  # Hedef ortam test iken dosya adı sevgikutuphanesi_prod_... olabilir; önek hedef DEPLOY_ENV ile sınırlı olmamalı.
   local p_cur="${PROJECT_TITLE}_${DEPLOY_ENV}_"
   local p_prod="${PROJECT_TITLE}_prod_"
   local p_test="${PROJECT_TITLE}_test_"

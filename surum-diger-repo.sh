@@ -1,5 +1,5 @@
 #!/bin/bash
-# Yardım merkezi ve Unity oyun yayını: kaynak ayrı repo değil, EGITIM repo içindeki klasörler.
+# Yardım merkezi ve Unity oyun yayını: kaynak ayrı repo değil, seleniumorchestrator repo içindeki klasörler.
 #   Help/private-ari-help-center, Help/public-ari-help-center, OyunUnity/Publish
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

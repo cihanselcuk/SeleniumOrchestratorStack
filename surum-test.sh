@@ -41,6 +41,8 @@ olustur_compose test down
 sudo cp "${APP_SOURCE_DIR}/NuGet.Config" "${APP_SOURCE_DIR}/SeleniumOrchestratorBackend/"
 sudo docker build --add-host "${NUGET_HOST}:${DOCKER_HOST_IP}" -t "${PROJECT_TITLE}si-${DEPLOY_ENV}:latest" "${APP_SOURCE_DIR}/SeleniumOrchestratorBackend/."
 sudo docker build -t "${PROJECT_TITLE}ui-${DEPLOY_ENV}:latest" -f "${APP_SOURCE_DIR}/SeleniumOrchestratorFrontend/DockerfileTest" "${APP_SOURCE_DIR}/SeleniumOrchestratorFrontend/."
+# -- PRESERVE BEGIN: AdditionalDockerBuilds -- #
+# -- PRESERVE END: AdditionalDockerBuilds -- #
 
 cd "${STACK_SOURCE_DIR}" || exit 1
 sudo ./surum-diger-repo.sh test
