@@ -45,7 +45,7 @@ sudo docker build -t "${PROJECT_TITLE}ui-${DEPLOY_ENV}:latest" -f "${APP_SOURCE_
 # -- PRESERVE END: AdditionalDockerBuilds -- #
 
 cd "${STACK_SOURCE_DIR}" || exit 1
-sudo ./surum-diger-repo.sh test
+sudo ./surum-diger-repo.sh test || exit 1
 sudo ./surum-genel-servisler.sh test
 
 olustur_compose test up -d
