@@ -80,6 +80,10 @@ if [ "$ENV_LABEL" = "test" ]; then
   olustur_proxy "pgadmintest.seleniumorchestrator.com"        "${PROJECT_TITLE}-${ENV_LABEL}-pgadmin-1"        80
   olustur_proxy "listmonktest.seleniumorchestrator.com"       "${PROJECT_TITLE}-${ENV_LABEL}-listmonk-1"       9000
   olustur_proxy "yardimtest.seleniumorchestrator.com"         "${PROJECT_TITLE}-${ENV_LABEL}-yardimozel-1"     80
+  # Projeye ozel ek proxy kayitlari buraya yazilir
+# -- PRESERVE BEGIN: OzelProxyKayitlariTest -- #
+  # olustur_proxy "oyuntest.seleniumorchestrator.com"         "${PROJECT_TITLE}-${ENV_LABEL}-oyun-1"           80
+# -- PRESERVE END: OzelProxyKayitlariTest -- #
 
 elif [ "$ENV_LABEL" = "prod" ]; then
   olustur_proxy "giristestyonetim.seleniumorchestrator.com"   "${PROJECT_TITLE}-${ENV_LABEL}-keycloak-1"       8080
@@ -88,6 +92,10 @@ elif [ "$ENV_LABEL" = "prod" ]; then
   olustur_proxy "pgadmin.seleniumorchestrator.com"            "${PROJECT_TITLE}-${ENV_LABEL}-pgadmin-1"       80
   olustur_proxy "listmonk.seleniumorchestrator.com"           "${PROJECT_TITLE}-${ENV_LABEL}-listmonk-1"      9000
   olustur_proxy "yardim.seleniumorchestrator.com"             "${PROJECT_TITLE}-${ENV_LABEL}-yardimozel-1"    80
+  # Projeye ozel ek proxy kayitlari buraya yazilir
+# -- PRESERVE BEGIN: OzelProxyKayitlariProd -- #
+  # olustur_proxy "oyun.seleniumorchestrator.com"             "${PROJECT_TITLE}-${ENV_LABEL}-oyun-1"          80
+# -- PRESERVE END: OzelProxyKayitlariProd -- #
 
 fi
 
