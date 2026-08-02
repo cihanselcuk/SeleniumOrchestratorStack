@@ -10,13 +10,8 @@ cd "${STACK_SOURCE_DIR}" || exit 1
 sudo git reset --hard
 sudo git pull "${GIT_REMOTE_STACK}" main
 
-sudo chmod +x "${SCRIPT_DIR}/surum-diger-repo.sh"
-sudo chmod +x "${SCRIPT_DIR}/surum-genel-servisler.sh"
-sudo chmod +x "${SCRIPT_DIR}/surum-test.sh"
-sudo chmod +x "${SCRIPT_DIR}/surum-prod.sh"
-sudo chmod +x "${SCRIPT_DIR}/backup-postgres-test.sh"
-sudo chmod +x "${SCRIPT_DIR}/backup-postgres-prod.sh"
-sudo chmod +x "${SCRIPT_DIR}/surum-keycloak.sh"
+# git pull sonrasi: tum script'lere +x (tek tek saymak yerine toplu; yeni script eklenince unutulmaz)
+sudo chmod +x "${SCRIPT_DIR}"/*.sh "${SCRIPT_DIR}"/lib/*.sh "${SCRIPT_DIR}"/scripts/*.sh 2>/dev/null || true
 
 echo ""
 "${SCRIPT_DIR}/surum-test.sh" || exit 1

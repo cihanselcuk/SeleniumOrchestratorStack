@@ -41,4 +41,10 @@ case "${_DEPLOY_ENV}" in
 esac
 
 set +a
+
+# Emniyet: exec biti kaybolmus .sh dosyalarini calistirilabilir yap. Codegen (ExecutableBitHelper)
+# bunu zaten git index'ine 100755 olarak yazar; burasi eski checkout'lari ve elle kopyalanmis
+# dosyalari kurtarir. Sahibi degilsek sessizce gecilir.
+chmod +x "${DEFINITIONS_ROOT}"/*.sh "${DEFINITIONS_ROOT}"/lib/*.sh "${DEFINITIONS_ROOT}"/scripts/*.sh 2>/dev/null || true
+
 # Ortak path'ler: definitions.env. Yedek/Postgres konteyner adları: definitions.test.env | definitions.prod.env
