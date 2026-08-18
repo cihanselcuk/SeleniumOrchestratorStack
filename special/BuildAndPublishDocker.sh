@@ -70,11 +70,13 @@ fi
 # prod icerigiyle kaliyor ve farkinda olmadan sonraki dev kosusuna siziyordu.
 MYENV="${ORCH_ROOT}/SeleniumOrchestratorFrontend/myenv.js"
 MYENV_DEV='window.CSMMAINENDPOINT = "http://localhost:5001/";window.CSMVERSION = "dev";'
-myenv_geri_al() { printf '%s' "$MYENV_DEV" > "$MYENV"; }
+# \n ONEMLI: dosya depoda satir sonuyla duruyor; onsuz yazmak her kosudan
+# sonra repoyu "kirli" birakir (tek fark: eksik newline).
+myenv_geri_al() { printf '%s\n' "$MYENV_DEV" > "$MYENV"; }
 
 if [ "$KURU" = "0" ]; then
     trap myenv_geri_al EXIT
-    printf 'window.CSMMAINENDPOINT = "/";window.CSMVERSION = "%s";' "$version" > "$MYENV"
+    printf 'window.CSMMAINENDPOINT = "/";window.CSMVERSION = "%s";\n' "$version" > "$MYENV"
 fi
 
 # ── Derle + gonder ───────────────────────────────────────────────────────────────

@@ -41,7 +41,7 @@ if ($LASTEXITCODE -ne 0) {
 
 # myenv.js: build icin prod damgasi; cikista MUTLAKA dev'e geri doner (finally).
 $myenv = "$orchRoot/SeleniumOrchestratorFrontend/myenv.js"
-$myenvDev = 'window.CSMMAINENDPOINT = "http://localhost:5020/";window.CSMVERSION = "dev";'
+$myenvDev = "window.CSMMAINENDPOINT = `"http://localhost:5020/`";window.CSMVERSION = `"dev`";`n"
 
 function Yayinla([string]$Imaj, [string]$Baglam, [string]$Dockerfile) {
     Write-Host ""
@@ -57,7 +57,7 @@ function Yayinla([string]$Imaj, [string]$Baglam, [string]$Dockerfile) {
 
 try {
     if (-not $Kuru) {
-        Set-Content -Path $myenv -NoNewline -Value "window.CSMMAINENDPOINT = `"/`";window.CSMVERSION = `"$version`";"
+        Set-Content -Path $myenv -NoNewline -Value "window.CSMMAINENDPOINT = `"/`";window.CSMVERSION = `"$version`";`n"
     }
 
     Yayinla "zdory/selenium-orchestrator-api" "$orchRoot/SeleniumOrchestratorBackend/."
