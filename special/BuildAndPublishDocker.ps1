@@ -1,45 +1,76 @@
+# SeleniumOrchestrator — coklu mimari (linux/amd64 + linux/arm64) imaj yayini.
+# Gerekce ve tuzaklar icin kardes dosyaya bak: BuildAndPublishDocker.sh
+#
+# Kullanim:
+#   .\BuildAndPublishDocker.ps1 -Kuru     # ne yapacagini yazar, dokunmaz
+#   .\BuildAndPublishDocker.ps1           # derle + push (latest + <surum>)
+param(
+    [switch]$Kuru,
+    [string]$Platforms = "linux/amd64,linux/arm64",
+    [string]$Builder = "so-builder"
+)
+
+$ErrorActionPreference = "Stop"
+
 $scriptRoot = $PSScriptRoot
 $orchRoot = Resolve-Path (Join-Path $scriptRoot "..\..\SeleniumOrchestrator")
 $versionConfig = Get-Content -Path "$scriptRoot/version.json" -Raw | ConvertFrom-Json
+
 $major = $versionConfig.major
 $minor = $versionConfig.minor
 $patch = git -C "$orchRoot" rev-list HEAD --count
-
 $version = "$major.$minor.$patch"
+$commit = git -C "$orchRoot" rev-parse --short HEAD
 
-echo "------- 1 - Generate Version Info"
-$content = "window.CSMMAINENDPOINT = `"/`";window.CSMVERSION = `"$Version`";"
-Set-Content -Path "$orchRoot/SeleniumOrchestratorFrontend/myenv.js" -Value $content
+Write-Host "-- Surum ------------------------------------------"
+Write-Host "   kaynak : $orchRoot @ $commit"
+Write-Host "   surum  : $version   (tag: :latest + :$version)"
+Write-Host "   mimari : $Platforms"
+if ($Kuru) { Write-Host "   KURU MOD: hicbir sey derlenmez/gonderilmez" }
 
-echo "------- 1 - Generate Version Info - DONE"
-echo "------- 2 - Build Api"
-Push-Location "$orchRoot/SeleniumOrchestratorBackend"
-docker build -t "zdory/selenium-orchestrator-api:latest" -t "zdory/selenium-orchestrator-api:$version" .
-Pop-Location
+if (git -C "$orchRoot" status --porcelain) {
+    Write-Host "   UYARI  : calisma agaci KIRLI - imaj commit'lenmemis kodla derlenecek"
+}
 
-echo "------- 2 - Build Api - DONE"
-echo "------- 3 - Build Runner"
-Push-Location "$orchRoot/SeleniumOrchestratorBackend/Utils/SeleniumRunner/SeleniumRunner.Api"
-docker build -t "zdory/selenium-runner-api:latest" -t "zdory/selenium-runner-api:$version" .
-Pop-Location
+# Coklu mimari manifest'i yalniz docker-container driver'i uretebilir.
+docker buildx inspect $Builder *> $null
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "   builder '$Builder' yok -> olusturuluyor (docker-container)"
+    if (-not $Kuru) { docker buildx create --name $Builder --driver docker-container --bootstrap | Out-Null }
+}
 
-echo "------- 3 - Build Runner - DONE"
-echo "------- 4 - Build UI"
-Push-Location "$orchRoot/SeleniumOrchestratorFrontend"
-docker build -f DockerfileProd -t "zdory/selenium-orchestrator-ui:latest" -t "zdory/selenium-orchestrator-ui:$version" .
-Pop-Location
+# myenv.js: build icin prod damgasi; cikista MUTLAKA dev'e geri doner (finally).
+$myenv = "$orchRoot/SeleniumOrchestratorFrontend/myenv.js"
+$myenvDev = 'window.CSMMAINENDPOINT = "http://localhost:5020/";window.CSMVERSION = "dev";'
 
-echo "------- 4 - Build UI - DONE"
+function Yayinla([string]$Imaj, [string]$Baglam, [string]$Dockerfile) {
+    Write-Host ""
+    Write-Host "-- $Imaj ------------------------------------------"
+    $argv = @("buildx", "build", "--builder", $Builder, "--platform", $Platforms,
+              "-t", "${Imaj}:latest", "-t", "${Imaj}:$version", "--push")
+    if ($Dockerfile) { $argv += @("-f", $Dockerfile) }
+    $argv += $Baglam
 
-$content = "window.CSMMAINENDPOINT = `"http://localhost:5020/`";window.CSMVERSION = `"dev`";"
-Set-Content -Path "$orchRoot/SeleniumOrchestratorFrontend/myenv.js" -Value $content
+    Write-Host "   $ docker $($argv -join ' ')"
+    if (-not $Kuru) { & docker @argv }
+}
 
-echo "------- 5 - Publish Images"
-docker push zdory/selenium-orchestrator-api:latest
-docker push "zdory/selenium-orchestrator-api:$version"
-docker push zdory/selenium-runner-api:latest
-docker push "zdory/selenium-runner-api:$version"
-docker push zdory/selenium-orchestrator-ui:latest
-docker push "zdory/selenium-orchestrator-ui:$version"
+try {
+    if (-not $Kuru) {
+        Set-Content -Path $myenv -NoNewline -Value "window.CSMMAINENDPOINT = `"/`";window.CSMVERSION = `"$version`";"
+    }
 
-echo "------- 5 - Publish Images - DONE"
+    Yayinla "zdory/selenium-orchestrator-api" "$orchRoot/SeleniumOrchestratorBackend/."
+    Yayinla "zdory/selenium-runner-api" "$orchRoot/SeleniumOrchestratorBackend/Utils/SeleniumRunner/SeleniumRunner.Api/."
+    Yayinla "zdory/selenium-orchestrator-ui" "$orchRoot/SeleniumOrchestratorFrontend/." "$orchRoot/SeleniumOrchestratorFrontend/DockerfileProd"
+}
+finally {
+    if (-not $Kuru) { Set-Content -Path $myenv -NoNewline -Value $myenvDev }
+}
+
+Write-Host ""
+if ($Kuru) {
+    Write-Host "-- KURU BITTI - hicbir sey gonderilmedi ($version) --"
+} else {
+    Write-Host "-- BITTI -- zdory/selenium-* : $version + latest -> $Platforms"
+}
