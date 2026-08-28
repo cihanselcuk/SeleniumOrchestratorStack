@@ -105,10 +105,40 @@ yayinla zdory/selenium-orchestrator-ui \
         "${ORCH_ROOT}/SeleniumOrchestratorFrontend/." \
         "${ORCH_ROOT}/SeleniumOrchestratorFrontend/DockerfileProd"
 
+# ── script-base: YENIDEN DERLENMEZ, mevcut manifest yeni surum tag'ine KOPYALANIR ────
+# Neden buradan: script-base + runner-api + orchestrator-api "uclu sozlesme"dir ve sozlesme
+# SURUM NUMARASI uzerinden kurulur (SeleniumOrchestrator/docs/reference/runner-imaji-multi-arch.md
+# §3). Bu adim olmadan script-base eski numarada kalir, compose'daki ScriptBaseImageTag uclu
+# ile ayrisir ve arm64'te SESSIZCE patlar.
+#
+# Neden yeniden derleme yok: bu imajin icerigi (tarayici + driver) .NET derlemesinden BAGIMSIZDIR
+# ve nadiren degisir. Yeniden derlemek apt'ten TAZE Chrome/Chromium ceker -> icerik sessizce
+# degisir ve dogrulanmamis bir tarayici surumu yayina girer. Ayrica arm64 tarafi capraz
+# derlemede cok yavastir.
+#
+# Icerik GERCEKTEN tazelenecekse once sunu kos (multi-arch, :latest'i gunceller):
+#   ${ORCH_ROOT}/SeleniumOrchestratorBackend/Utils/SeleniumRunner/SeleniumRunner.Api/data/buildRunnerScriptBase.sh
+# asagidaki adim onu surum numarasiyla damgalar.
+SCRIPT_BASE="zdory/selenium-runner-script-base"
+SCRIPT_BASE_KAYNAK="${SCRIPT_BASE_KAYNAK:-${SCRIPT_BASE}:latest}"
+
+echo ""
+echo "── ${SCRIPT_BASE} (yeniden derleme YOK) ─────────────"
+echo "   kaynak : ${SCRIPT_BASE_KAYNAK}"
+echo "   hedef  : ${SCRIPT_BASE}:${version}"
+printf '   $ docker buildx imagetools create -t %s:%s %s\n' "$SCRIPT_BASE" "$version" "$SCRIPT_BASE_KAYNAK"
+[ "$KURU" = "1" ] || docker buildx imagetools create -t "${SCRIPT_BASE}:${version}" "$SCRIPT_BASE_KAYNAK"
+
 echo ""
 if [ "$KURU" = "1" ]; then
     echo "── KURU BITTI — hicbir sey gonderilmedi (${version}) ──"
 else
     echo "── BITTI ── zdory/selenium-{orchestrator-api,runner-api,orchestrator-ui}:${version} + :latest → ${PLATFORMS}"
+    echo "            ${SCRIPT_BASE}:${version} (kopyalandi, yeniden derlenmedi)"
     echo "   dogrula: docker buildx imagetools inspect zdory/selenium-orchestrator-api:${version}"
+    echo "   dogrula: docker buildx imagetools inspect ${SCRIPT_BASE}:${version}   # amd64 + arm64 olmali"
+    echo ""
+    echo "   Kurulum recetesindeki tag'leri ${version}'e cek:"
+    echo "     SeleniumOrchestrator/docker-compose.yml   (3 satir: ScriptBaseImageTag + 2 image)"
+    echo "     SeleniumOrchestrator/.claude/skills/csseeder-selenium-orchestrator-usage/SKILL.md  (IMAGE_TAG)"
 fi
